@@ -22,8 +22,10 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 public class NativeBubbleView extends View {
     
     // Dimensions (in dp, will be converted to px)
+    // Ring size = Bubble size + (2 * ring stroke) for perfect alignment
     private static final int BUBBLE_SIZE_DP = 56;
-    private static final int RING_STROKE_DP = 3;
+    private static final int RING_STROKE_DP = 4; // Increased for better visibility
+    private static final int RING_PADDING_DP = 2; // Gap between bubble and ring
     private static final int SCAN_BUTTON_SIZE_DP = 28;
     private static final int GPS_BOX_HEIGHT_DP = 24;
     
@@ -49,6 +51,7 @@ public class NativeBubbleView extends View {
     // Dimensions in pixels
     private int bubbleSize;
     private int ringStroke;
+    private int ringPadding;
     private int ringSize;
     private int scanButtonSize;
     
@@ -81,7 +84,9 @@ public class NativeBubbleView extends View {
         float density = getResources().getDisplayMetrics().density;
         bubbleSize = (int) (BUBBLE_SIZE_DP * density);
         ringStroke = (int) (RING_STROKE_DP * density);
-        ringSize = bubbleSize + (ringStroke * 2);
+        ringPadding = (int) (RING_PADDING_DP * density);
+        // Ring size = bubble + padding on each side + stroke width
+        ringSize = bubbleSize + (ringPadding * 2) + (ringStroke * 2);
         scanButtonSize = (int) (SCAN_BUTTON_SIZE_DP * density);
         
         // Initialize paints
@@ -150,17 +155,19 @@ public class NativeBubbleView extends View {
         
         float centerX = ringSize / 2f;
         float centerY = ringSize / 2f;
-        float radius = (ringSize - ringStroke) / 2f;
         
-        // Draw shadow
+        // Ring radius - exactly touching the bubble edge with padding
+        float ringRadius = (bubbleSize / 2f) + ringPadding + (ringStroke / 2f);
+        
+        // Draw shadow for bubble
         canvas.drawCircle(centerX + 2, centerY + 4, bubbleSize / 2f, shadowPaint);
         
-        // Draw ring background
+        // Draw ring background - perfectly centered on bubble
         ringRect.set(
-            ringStroke / 2f,
-            ringStroke / 2f,
-            ringSize - ringStroke / 2f,
-            ringSize - ringStroke / 2f
+            centerX - ringRadius,
+            centerY - ringRadius,
+            centerX + ringRadius,
+            centerY + ringRadius
         );
         canvas.drawArc(ringRect, 0, 360, false, ringBackgroundPaint);
         
