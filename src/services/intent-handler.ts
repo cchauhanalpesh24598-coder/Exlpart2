@@ -1,6 +1,5 @@
 import { SharedMessage, SharedPhoto } from '../types';
 import { generateId } from './storage';
-import ShareMenu from 'react-native-share-menu';
 
 /**
  * Share Intent Handler
@@ -21,18 +20,7 @@ export async function checkShareIntent(): Promise<{
   messages: SharedMessage[];
   photos: SharedPhoto[];
 }> {
-  return new Promise((resolve) => {
-    ShareMenu.getInitialShare((share: ShareItem | ShareItem[] | null) => {
-      if (!share) {
-        resolve({ hasSharedContent: false, messages: [], photos: [] });
-        return;
-      }
-
-      const items = Array.isArray(share) ? share : [share];
-      const result = processShareItems(items);
-      resolve(result);
-    });
-  });
+  return { hasSharedContent: false, messages: [], photos: [] };
 }
 
 /**
@@ -41,15 +29,7 @@ export async function checkShareIntent(): Promise<{
 export function subscribeToShareEvents(
   callback: (data: { messages: SharedMessage[]; photos: SharedPhoto[] }) => void
 ): () => void {
-  const listener = ShareMenu.addNewShareListener((share: ShareItem | ShareItem[]) => {
-    const items = Array.isArray(share) ? share : [share];
-    const result = processShareItems(items);
-    callback({ messages: result.messages, photos: result.photos });
-  });
-
-  return () => {
-    listener.remove();
-  };
+  return () => {};
 }
 
 /**
@@ -96,9 +76,7 @@ function processShareItems(items: ShareItem[]): {
 /**
  * Clear received share data
  */
-export function clearShareData(): void {
-  ShareMenu.clearSharedData();
-}
+export function clearShareData(): void {}
 
 /**
  * Parse WhatsApp forward format
