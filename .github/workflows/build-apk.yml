@@ -3,9 +3,11 @@ name: Build Android APK
 on:
   push:
     branches:
-      - main
       - master
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -38,10 +40,7 @@ jobs:
 
       - name: Fix build.gradle for ML Kit
         run: |
-          # Add google services to android/build.gradle
           sed -i 's/mavenCentral()/mavenCentral()\n        google()/' android/build.gradle
-          
-          # Update minSdkVersion to 21 for ML Kit compatibility
           sed -i 's/minSdkVersion = .*/minSdkVersion = 21/' android/build.gradle
 
       - name: Make Gradlew Executable
@@ -73,7 +72,6 @@ jobs:
           retention-days: 30
 
       - name: Create Release
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.run_number }}
