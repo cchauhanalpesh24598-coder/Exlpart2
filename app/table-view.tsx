@@ -26,6 +26,7 @@ export default function TableViewScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState('');
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [showBubbleData, setShowBubbleData] = useState(false);
 
   useEffect(() => {
     // Check if we have rows from context (from bubble or shared content)
@@ -40,7 +41,7 @@ export default function TableViewScreen() {
       // Load existing rows for manual entry
       loadExistingRows();
     }
-  }, []);
+  }, [contextRows]);
 
   const loadExistingRows = async () => {
     const savedRows = await loadRows();
@@ -169,6 +170,49 @@ export default function TableViewScreen() {
           <Text style={styles.legendText}>Manual entry</Text>
         </View>
       </View>
+
+      {/* Bubble Collected Data Panel */}
+      {collectedRows.length > 0 && (
+        <TouchableOpacity 
+          style={styles.bubbleDataPanel}
+          onPress={() => setShowBubbleData(!showBubbleData)}
+        >
+          <View style={styles.bubbleDataHeader}>
+            <Text style={styles.bubbleDataTitle}>
+              Bubble Collection: {collectedRows.length} rows
+            </Text>
+            <View style={styles.bubbleDataStats}>
+              <Text style={styles.bubbleStatComplete}>
+                {collectedRows.filter(r => r.status === 'full').length} complete
+              </Text>
+              <Text style={styles.bubbleStatPending}>
+                {collectedRows.filter(r => r.status === 'half').length} pending
+              </Text>
+            </View>
+          </View>
+          {showBubbleData && (
+            <View style={styles.bubbleDataContent}>
+              {collectedRows.map((row, index) => (
+                <View key={row.id} style={[
+                  styles.bubbleDataRow,
+                  row.status === 'full' && styles.bubbleRowComplete,
+                ]}>
+                  <Text style={styles.bubbleRowNum}>#{row.rowNumber}</Text>
+                  <Text style={styles.bubbleRowName} numberOfLines={1}>
+                    {row.messageData?.applicantName || 'No name'}
+                  </Text>
+                  <Text style={[
+                    styles.bubbleRowGPS,
+                    !row.gpsData && styles.bubbleRowGPSPending
+                  ]}>
+                    {row.gpsData || 'GPS pending'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </TouchableOpacity>
+      )}
 
       {/* Data Table */}
       <View style={styles.tableContainer}>
@@ -342,5 +386,76 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Bubble Data Panel styles
+  bubbleDataPanel: {
+    backgroundColor: COLORS.primaryLight,
+    marginHorizontal: 12,
+    marginTop: 8,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  bubbleDataHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bubbleDataTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  bubbleDataStats: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  bubbleStatComplete: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: '500',
+  },
+  bubbleStatPending: {
+    fontSize: 12,
+    color: '#FF9800',
+    fontWeight: '500',
+  },
+  bubbleDataContent: {
+    marginTop: 12,
+    gap: 6,
+  },
+  bubbleDataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    padding: 8,
+    borderRadius: 8,
+    gap: 8,
+  },
+  bubbleRowComplete: {
+    backgroundColor: '#E8F5E9',
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.secondary,
+  },
+  bubbleRowNum: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+    width: 30,
+  },
+  bubbleRowName: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text,
+  },
+  bubbleRowGPS: {
+    fontSize: 11,
+    color: COLORS.secondary,
+    fontWeight: '500',
+  },
+  bubbleRowGPSPending: {
+    color: '#FF9800',
+    fontStyle: 'italic',
   },
 });
