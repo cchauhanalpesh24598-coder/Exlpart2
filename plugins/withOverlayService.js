@@ -1,11 +1,16 @@
 /**
  * Expo Config Plugin for Overlay Service
  * 
- * Ye plugin AndroidManifest.xml me overlay service aur permissions add karta hai.
+ * Ye plugin:
+ * 1. AndroidManifest.xml me overlay service aur permissions add karta hai
+ * 2. MainApplication.java me OverlayPackage register karta hai
+ * 
  * Run: expo prebuild --clean
  */
 
-const { withAndroidManifest } = require('@expo/config-plugins');
+const { withAndroidManifest, withMainApplication, withDangerousMod } = require('@expo/config-plugins');
+const fs = require('fs');
+const path = require('path');
 
 function addOverlayServiceToManifest(androidManifest) {
   const { manifest } = androidManifest;
@@ -65,9 +70,81 @@ function addOverlayServiceToManifest(androidManifest) {
   return androidManifest;
 }
 
+function withOverlayMainApplication(config) {
+  return withMainApplication(config, async (config) => {
+    const contents = config.modResults.contents;
+    
+    // Add import for OverlayPackage
+    const importStatement = 'import com.ocrexcel.app.overlay.OverlayPackage;';
+    
+    if (!contents.includes(importStatement)) {
+      // Find the last import statement and add after it
+      const importRegex = /(import .*;\n)(?!import)/;
+      const match = contents.match(importRegex);
+      
+      if (match) {
+        config.modResults.contents = contents.replace(
+          importRegex,
+          `$1${importStatement}\n`
+        );
+      }
+    }
+    
+    // Add OverlayPackage to getPackages()
+    const packageStatement = 'packages.add(new OverlayPackage());';
+    
+    if (!config.modResults.contents.includes(packageStatement)) {
+      // Find getPackages method and add package
+      const getPackagesRegex = /(protected List<ReactPackage> getPackages\(\) \{[\s\S]*?List<ReactPackage> packages = new PackageList\(this\)\.getPackages\(\);)/;
+      
+      if (getPackagesRegex.test(config.modResults.contents)) {
+        config.modResults.contents = config.modResults.contents.replace(
+          getPackagesRegex,
+          `$1\n        // Add Overlay Package for system-wide bubble\n        ${packageStatement}`
+        );
+      }
+    }
+    
+    return config;
+  });
+}
+
+function withOverlayNativeFiles(config) {
+  return withDangerousMod(config, [
+    'android',
+    async (config) => {
+      const projectRoot = config.modRequest.projectRoot;
+      const packagePath = 'app/src/main/java/com/ocrexcel/app/overlay';
+      const androidPath = path.join(projectRoot, 'android', packagePath);
+      
+      // Ensure directory exists
+      if (!fs.existsSync(androidPath)) {
+        fs.mkdirSync(androidPath, { recursive: true });
+      }
+      
+      // Copy native files from project to android folder
+      const nativeFilesSource = path.join(projectRoot, 'android', packagePath);
+      
+      // Files will be copied during prebuild
+      // The actual Java files should exist in android/app/src/main/java/com/ocrexcel/app/overlay/
+      
+      return config;
+    },
+  ]);
+}
+
 module.exports = function withOverlayService(config) {
-  return withAndroidManifest(config, async (config) => {
+  // Step 1: Add permissions and service to AndroidManifest.xml
+  config = withAndroidManifest(config, async (config) => {
     config.modResults = addOverlayServiceToManifest(config.modResults);
     return config;
   });
+  
+  // Step 2: Register OverlayPackage in MainApplication
+  config = withOverlayMainApplication(config);
+  
+  // Step 3: Ensure native files directory exists
+  config = withOverlayNativeFiles(config);
+  
+  return config;
 };
